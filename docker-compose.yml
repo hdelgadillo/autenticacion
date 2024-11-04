@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  postgres-db:
+    image: postgres:latest
+    container_name: postgres_container
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: infur
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user"]
+      interval: 5s
+      retries: 5
+      start_period: 10s
+
+  node-app:
+    build:
+      context: .
+    container_name: node_app_container
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=postgres-db
+      - DB_PORT=5432
+      - DB_USER=user
+      - DB_PASSWORD=pass
+      - DB_NAME=infur
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    volumes:
+      - .:/usr/src/app
+    command: sh -c "npm install && node init.js && exec node app.js"
+
+volumes:
+  pg_data:
